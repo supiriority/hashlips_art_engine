@@ -5,6 +5,7 @@ const sha1 = require(`${basePath}/node_modules/sha1`);
 const { createCanvas, loadImage } = require(`${basePath}/node_modules/canvas`);
 const buildDir = `${basePath}/build`;
 const layersDir = `${basePath}/layers`;
+const { randomUUID } = require('crypto');
 const {
   format,
   baseUri,
@@ -30,6 +31,18 @@ var attributesList = [];
 var dnaList = new Set();
 const DNA_DELIMITER = "-";
 const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
+let labelColor = "";
+let currentTraitType = "";
+let currentTraitValue = "";
+const tempTraits = {
+  background: "",
+  cartridge: "",
+  label: "",
+  title: ""
+};
+
+const traitGlitch = "Glitched";
+const traitSpecial = "special";
 
 let hashlipsGiffer = null;
 
@@ -110,8 +123,13 @@ const layersSetup = (layersOrder) => {
   return layers;
 };
 
+const generateUUID = () => {
+  return randomUUID().toString();
+}
+
 const saveImage = (_editionCount) => {
   fs.writeFileSync(
+    // `${buildDir}/images/${generateUUID()}.png`,
     `${buildDir}/images/${_editionCount}.png`,
     canvas.toBuffer("image/png")
   );
@@ -171,8 +189,57 @@ const addMetadata = (_dna, _edition) => {
   attributesList = [];
 };
 
+const handleSpecialTraits = (trait) => {
+  if (trait === undefined) {
+    return;
+  }
+  
+  if (trait.indexOf("RGB") > -1) {
+    console.log("### adding Glitched!");
+    return traitGlitch;
+  }
+
+
+
+}
+
+const addRandomTrait = () => {
+  let random = Math.floor(Math.random());
+}
+
 const addAttributes = (_element) => {
   let selectedElement = _element.layer.selectedElement;
+  
+  if (_element.layer.name === "background") {
+    console.log("### starting new layer: ");
+    tempTraits[0] = selectedElement.name;
+    let tempTrait = "";
+
+    console.log("### tempTraits[0].toString(): " + tempTraits[0].toString());
+
+
+
+    attributesList.push({
+      trait_type: traitSpecial,
+      value: traitGlitch,
+    });
+  }
+
+  if (_element.layer.name === "cartridge") {
+    
+  }
+  if (_element.layer.name === "label") {
+    
+  }
+  if (_element.layer.name === "title") {
+    
+  }
+
+  
+  // console.log("### trait_type: " + _element.layer.name);
+
+  
+
   attributesList.push({
     trait_type: _element.layer.name,
     value: selectedElement.name,
@@ -224,6 +291,31 @@ const constructLayerToDna = (_dna = "", _layers = []) => {
     let selectedElement = layer.elements.find(
       (e) => e.id == cleanDna(_dna.split(DNA_DELIMITER)[index])
     );
+    // console.log("### selected element: " + selectedElement.name);
+    if (index === 2) {
+      // console.log ("## label color: " + selectedElement.name.split(" ")[0]);
+      labelColor = selectedElement.name.split(" ")[0];
+    }
+    if (index === 3) {
+      let titleColor = selectedElement.name.split(" ")[0];
+      // console.log("## title color: " + titleColor);
+      // reset path
+      if (labelColor != titleColor && selectedElement.path.indexOf("title - with background") > 0) {
+        console.log("## resetting background");
+        selectedElement.path = selectedElement.path.replace("title - with background", "title");
+      }
+
+      // add background if match
+      if (labelColor === titleColor) {
+        // console.log ("## add highlight!");
+        // if title matches label, add background
+        if (selectedElement.path.indexOf("title - with background") === -1) {
+          // console.log("## adding background");
+          selectedElement.path = selectedElement.path.replace("title", "title - with background");
+        }
+      }
+      labelColor = "";
+    }
     return {
       name: layer.name,
       blend: layer.blend,
